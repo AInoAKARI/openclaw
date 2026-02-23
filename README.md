@@ -180,26 +180,98 @@ Run `openclaw doctor` to surface risky/misconfigured DM policies.
 
 - [Control UI](https://docs.openclaw.ai/web) + [WebChat](https://docs.openclaw.ai/web/webchat) served directly from the Gateway.
 - [Tailscale Serve/Funnel](https://docs.openclaw.ai/gateway/tailscale) or [SSH tunnels](https://docs.openclaw.ai/gateway/remote) with token/password auth.
-- [Nix mode](https://docs.openclaw.ai/install/nix) for declarative config; [Docker](https://docs.openclaw.ai/install/docker)-based installs.
+- [Nix mode](https://docs.openclaw.ai/install/nix) for declarative config; [Docker](https://docs.openclaw.ai/install/docker)-based installs. **Self-hosted Docker**: always use `start_openclaw.sh` (see [Self-hosted Docker deployment](#self-hosted-docker-deployment-akari-vault)).
 - [Doctor](https://docs.openclaw.ai/gateway/doctor) migrations, [logging](https://docs.openclaw.ai/logging).
 
 ## How it works (short)
 
 ```
+  AKARI Vault (api_keys/)
+         │
+         ▼
+  AKARI-VAULT-KEYMASTER
+         │
+         ▼
+  start_openclaw.sh  ──►  docker compose up -d
+                                  │
 WhatsApp / Telegram / Slack / Discord / Google Chat / Signal / iMessage / BlueBubbles / Microsoft Teams / Matrix / Zalo / Zalo Personal / WebChat
-               │
-               ▼
-┌───────────────────────────────┐
-│            Gateway            │
-│       (control plane)         │
-│     ws://127.0.0.1:18789      │
-└──────────────┬────────────────┘
+               │                  │
+               ▼                  ▼
+┌───────────────────────────────────────┐
+│              Gateway                  │
+│         (control plane)               │
+│ ws://127.0.0.1:18789 → :18800 (ext)  │
+│        openclaw.json config           │
+└──────────────┬────────────────────────┘
                │
                ├─ Pi agent (RPC)
                ├─ CLI (openclaw …)
                ├─ WebChat UI
                ├─ macOS app
                └─ iOS / Android nodes
+```
+
+## Self-hosted Docker deployment (AKARI Vault)
+
+The canonical way to run OpenClaw in the self-hosted Docker setup is through `start_openclaw.sh`. **Do not run `docker compose` directly** — the startup script handles secret injection and environment setup.
+
+### Startup flow
+
+```
+AKARI Vault (api_keys/)
+       │
+       ▼
+AKARI-VAULT-KEYMASTER (/v1/secrets)
+       │
+       ▼
+start_openclaw.sh          ← only authorized entry point
+       │  fetches secrets via Keymaster API
+       │  exports env vars (ANTHROPIC_API_KEY, OPENCLAW_GATEWAY_TOKEN, …)
+       │
+       ▼
+docker compose up -d
+       │
+       ├─ openclaw-gateway   (port 18789 internal → 18800 external)
+       │     reads ~/.openclaw/openclaw.json
+       │     healthcheck: http://127.0.0.1:18789/
+       │
+       └─ openclaw-cli       (interactive, Keymaster-aware)
+             AKARI_KEYMASTER_URL + AKARI_KEYMASTER_TOKEN injected
+                    │
+                    ▼
+              Telegram bot (TELEGRAM_BOT_TOKEN)
+              + other configured channels
+```
+
+### Ports
+
+| Port  | Service              | Notes                     |
+|-------|----------------------|---------------------------|
+| 18800 | Gateway (external)   | `OPENCLAW_GATEWAY_PORT`   |
+| 18801 | Bridge (external)    | `OPENCLAW_BRIDGE_PORT`    |
+| 18789 | Gateway (internal)   | Container-internal default|
+
+### Key decisions
+
+- **Vault paths**: unified under `api_keys/` (the legacy `apis/` prefix has been fully removed).
+- **auth-profiles.json**: disabled. All credentials are injected via environment variables through Keymaster — no file-based auth profile rotation.
+- **keymaster-entrypoint.sh**: deprecated (no longer used; `start_openclaw.sh` is the sole entry point).
+- **Secret management**: no `.env`-file secrets in the repo. All secrets flow through AKARI-VAULT-KEYMASTER at startup time.
+
+### Quick reference
+
+```bash
+# Start (the only supported way)
+./start_openclaw.sh
+
+# Check status
+docker compose ps
+
+# View logs
+docker compose logs -f openclaw-gateway
+
+# Do NOT run directly:
+# docker compose up -d   ← secrets will be missing
 ```
 
 ## Key subsystems
