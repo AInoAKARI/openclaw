@@ -1,7 +1,12 @@
 node_modules
 **/node_modules/
 .env
+.env~
+.env.save
+.env.bak*
 docker-compose.extra.yml
+docker-compose.yml.bak*
+f.sh
 dist
 pnpm-lock.yaml
 bun.lock
@@ -114,3 +119,9 @@ dist/protocol.schema.json
 
 # Synthing
 **/.stfolder/
+
+# Backup files
+*.bak*
+.env.save
+.env~
+.env.bak*
