@@ -215,6 +215,26 @@ WhatsApp / Telegram / Slack / Discord / Google Chat / Signal / iMessage / BlueBu
 
 The canonical way to run OpenClaw in the self-hosted Docker setup is through `start_openclaw.sh`. **Do not run `docker compose` directly** — the startup script handles secret injection and environment setup.
 
+### Local repo quick start
+
+```bash
+cd ~/openclaw
+chmod +x start_openclaw.sh
+./start_openclaw.sh
+```
+
+What the script does in this repo:
+
+- loads `~/openclaw/.env` when present so Keymaster connection settings are available
+- fetches `KIMI_API_KEY` and `OPENCLAW_GATEWAY_TOKEN` from Keymaster if they are not already exported
+- optionally fetches `TELEGRAM_BOT_TOKEN` when `OPENCLAW_FETCH_TELEGRAM_TOKEN=1`
+- starts only the Docker Compose services defined in this repository
+
+Relevant services in `docker-compose.yml`:
+
+- `openclaw-gateway`: long-running gateway container on port `18789`
+- `openclaw-cli`: interactive helper container that shares the same config and workspace
+
 ### Startup flow
 
 ```
