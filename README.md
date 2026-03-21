@@ -215,6 +215,14 @@ WhatsApp / Telegram / Slack / Discord / Google Chat / Signal / iMessage / BlueBu
 
 The canonical way to run OpenClaw in the self-hosted Docker setup is through `start_openclaw.sh`. **Do not run `docker compose` directly** — the startup script handles secret injection and environment setup.
 
+### AKARI VM status snapshot (2026-03-18)
+
+- Branch: `main`
+- HEAD: `a6c8f3f999073074b15e7d9f4e7eb7167926d6e6` (`2026-03-17 Update README, add start script`)
+- Runtime: `openclaw-openclaw-gateway-1` is `Up ... (healthy)` on `0.0.0.0:18800->18789`
+- Current warnings: `.env` does not provide `KIMI_API_KEY`, `CLAUDE_AI_SESSION_KEY`, `CLAUDE_WEB_SESSION_KEY`, or `CLAUDE_WEB_COOKIE`, so `docker compose` prints startup warnings even though the gateway is healthy
+- Recommended local check: `cd ~/openclaw && docker compose ps && docker compose logs --tail=120 openclaw-gateway`
+
 ### Local repo quick start
 
 ```bash
